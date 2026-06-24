@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_URL = "http://localhost:5000/api/activity/"
+const API_URL = "https://grindpath.onrender.com/api/activity"
 
 export const getActivities = async () => {
   const userStr = localStorage.getItem("grindpath_user")

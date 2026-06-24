@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API = "http://localhost:5000/api/roadmaps"
+const API = "https://grindpath.onrender.com/api/roadmaps"
 
 export const generateRoadmap = async (goalId) => {
   const token = localStorage.getItem("token")
