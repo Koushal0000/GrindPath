@@ -2,6 +2,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { getProfile } from "../services/authService"
 import { getGoals } from "../services/goalService"
+import { createActivity, getActivities } from "../services/activityService"
+import { getAnalyticsData } from "../services/analyticsService"
 import { toast } from "react-toastify"
 import Swal from "sweetalert2"
 import { ACHIEVEMENTS } from "./AchievementsData"
@@ -21,6 +23,8 @@ export const AuthProvider = ({ children }) => {
   const [habits, setHabits] = useState([])
   const [pomodoroSessions, setPomodoroSessions] = useState(0)
   const [achievements, setAchievements] = useState([])
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [activities, setActivities] = useState([])
 
   // ─── Storage Key Helper ───────────────────────────────────────────────────
   const getStorageKey = (keyName) => {
@@ -39,6 +43,8 @@ export const AuthProvider = ({ children }) => {
     setPomodoroSessions(0)
     setAchievements([])
     setIsFocusMode(false)
+    setAnalyticsData(null)
+    setActivities([])
   }, [])
 
   // ─── Load Client-side Stats Helper ─────────────────────────────────────────
@@ -121,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  // ─── Auto Login on Mount ──────────────────────────────────────────────────
+  // ─── Load User & All Data ──────────────────────────────────────────────────
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -139,6 +145,17 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           console.error("Failed to load user goals", err)
         }
+        // Load analytics + activity timeline on app start
+        try {
+          const [analytics, acts] = await Promise.all([
+            getAnalyticsData(),
+            getActivities()
+          ])
+          if (analytics) setAnalyticsData(analytics)
+          if (acts) setActivities(acts)
+        } catch (err) {
+          console.error("Failed to load analytics", err)
+        }
       } else {
         logout()
       }
@@ -149,6 +166,23 @@ export const AuthProvider = ({ children }) => {
       setLoading(false)
     }
   }, [logout, loadClientStats])
+
+  // ─── Dashboard Refresh ────────────────────────────────────────────────────
+  // Call after any user action that should update dashboard analytics
+  const refreshDashboard = useCallback(async () => {
+    try {
+      const [userGoals, analytics, acts] = await Promise.all([
+        getGoals(),
+        getAnalyticsData(),
+        getActivities()
+      ])
+      if (userGoals) setGoals(userGoals)
+      if (analytics) setAnalyticsData(analytics)
+      if (acts) setActivities(acts)
+    } catch (err) {
+      console.error("refreshDashboard error", err)
+    }
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -263,6 +297,11 @@ export const AuthProvider = ({ children }) => {
       gainXP(50)
       return newCount
     })
+
+    // Persist to MongoDB activity log
+    createActivity({ title: "Focus Session Completed 🍅", desc: "Completed a 25-minute Pomodoro session", type: "pomodoro_completed", xpEarned: 50 })
+      .then(() => refreshDashboard())
+      .catch(err => console.error("Failed to log pomodoro activity", err))
   }
 
   // ─── Habit Operations ─────────────────────────────────────────────────────
@@ -288,7 +327,13 @@ export const AuthProvider = ({ children }) => {
     const updated = habits.map(h => {
       if (h.id === habitId) {
         const nextCompleted = !h.completed
-        if (nextCompleted) gainXP(10)
+        if (nextCompleted) {
+          gainXP(10)
+          // Persist habit completion to MongoDB
+          createActivity({ title: "Habit Completed ✅", desc: `Completed habit: "${h.text}"`, type: "habit_completed", xpEarned: 10 })
+            .then(() => refreshDashboard())
+            .catch(err => console.error("Failed to log habit activity", err))
+        }
         return { ...h, completed: nextCompleted, lastUpdated: todayStr }
       }
       return h
@@ -388,7 +433,11 @@ export const AuthProvider = ({ children }) => {
         unlockAchievement,
         checkAchievements,
         clearLocalData,
-        ACHIEVEMENTS
+        ACHIEVEMENTS,
+        // ── Analytics ────────────────────────────────────
+        analyticsData,
+        activities,
+        refreshDashboard
       }}
     >
       {children}

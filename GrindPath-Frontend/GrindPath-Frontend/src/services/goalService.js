@@ -1,6 +1,8 @@
 import axios from "axios"
 
-const API = "https://grindpath.onrender.com/api/goals"
+const API = window.location.hostname === "localhost" 
+  ? "http://localhost:5000/api/goals" 
+  : "https://grindpath.onrender.com/api/goals"
 
 export const createGoal = async (goalData) => {
 

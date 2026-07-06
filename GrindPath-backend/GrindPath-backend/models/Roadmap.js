@@ -18,11 +18,25 @@ const roadmapSchema = new mongoose.Schema({
     required: true
   },
 
+  // What the learner will be able to do after completing this week.
+  // Optional — undefined on pre-v2 documents, which is fine.
+  learningObjectives: [
+    {
+      type: String
+    }
+  ],
+
   topics: [
     {
       type: String
     }
   ],
+
+  // Auto-calculated: topics.length × hoursPerTopic(skillLevel)
+  // Optional — undefined on pre-v2 documents, which is fine.
+  estimatedStudyHours: {
+    type: Number
+  },
 
   completed: {
     type: Boolean,

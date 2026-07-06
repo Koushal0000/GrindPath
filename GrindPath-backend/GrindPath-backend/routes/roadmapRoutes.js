@@ -6,6 +6,7 @@ const protect = require("../middleware/authMiddleware");
 
 const {
   generateRoadmap,
+  getRoadmapMeta,
   markWeekCompleted,
   getProgress,
   getRoadmapWeeks
@@ -19,7 +20,10 @@ router.put("/:id/complete", protect, markWeekCompleted);
 
 router.get("/:goalId/progress", protect, getProgress);
 
+// GET ROADMAP META — must be before /:goalId to avoid route collision
+router.get("/:goalId/meta", protect, getRoadmapMeta);
+
 router.get("/:goalId", protect, getRoadmapWeeks);
 
 
-module.exports = router;
+module.exports = router;

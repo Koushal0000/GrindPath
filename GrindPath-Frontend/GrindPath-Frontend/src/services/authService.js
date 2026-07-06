@@ -1,6 +1,8 @@
 import axios from "axios"
 
-const API = "https://grindpath.onrender.com/api/users"
+const API = window.location.hostname === "localhost" 
+  ? "http://localhost:5000/api/users" 
+  : "https://grindpath.onrender.com/api/users"
 
 export const registerUser = async (userData) => {
   const response = await axios.post(`${API}/register`, userData)

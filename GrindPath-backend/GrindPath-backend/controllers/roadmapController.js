@@ -1,8 +1,24 @@
-const Goal = require("../models/Goal");
-const Roadmap = require("../models/Roadmap");
+const Goal         = require("../models/Goal");
+const Roadmap      = require("../models/Roadmap");
+const RoadmapMeta  = require("../models/RoadmapMeta");
+const Activity     = require("../models/Activity");
+const roadmapGenerator = require("../utils/roadmapGenerator");
+
+// Silent activity logger — never throws
+const logActivity = async ({ title, desc, type, xpEarned = 0, userId }) => {
+  try {
+    await Activity.create({ title, desc, type, xpEarned, user: userId });
+  } catch (e) {
+    console.error("[Activity Log Error]", e.message);
+  }
+};
 
 
-// GENERATE ROADMAP
+// ─── GENERATE ROADMAP ─────────────────────────────────────────────────────────
+// POST /api/roadmaps/:goalId
+// Body: { domain, skillLevel, hoursPerDay }
+// Falls back to goal.level / goal.dailyHours for backward compatibility.
+
 const generateRoadmap = async (req, res) => {
 
   try {
@@ -10,273 +26,183 @@ const generateRoadmap = async (req, res) => {
     const goal = await Goal.findById(req.params.goalId);
 
     if (!goal) {
-
-      return res.status(404).json({
-        message: "Goal not found"
-      });
-
+      return res.status(404).json({ message: "Goal not found" });
     }
 
-    // CHECK OWNERSHIP
+    // Ownership check
     if (goal.user.toString() !== req.user) {
-
-      return res.status(401).json({
-        message: "Not authorized"
-      });
-
+      return res.status(401).json({ message: "Not authorized" });
     }
 
-    const duration = goal.duration || 30;
+    // Resolve generation params — body takes priority, goal fields are fallback
+    const domain      = req.body.domain     || "mern";
+    const skillLevel  = req.body.skillLevel || goal.level      || "Beginner";
+    const hoursPerDay = req.body.hoursPerDay || goal.dailyHours || 2;
 
-    const calculateRoadmapWeeks = (days) => {
+    console.log(`[Roadmap Controller] Received generation request for Goal ID: ${req.params.goalId}`);
+    console.log(`[Roadmap Controller] request.body:`, req.body);
+    console.log(`[Roadmap Controller] Resolved domain: "${domain}" (from body: "${req.body.domain}")`);
+    console.log(`[Roadmap Controller] Resolved skillLevel: "${skillLevel}" (from body: "${req.body.skillLevel}", goal: "${goal.level}")`);
+    console.log(`[Roadmap Controller] Resolved hoursPerDay: ${hoursPerDay} (from body: ${req.body.hoursPerDay}, goal: ${goal.dailyHours})`);
 
-  if (days <= 20) return 1;
+    // ── Delegate all business logic to the generator engine ─────────────────
+    // To swap in AI generation later: replace roadmapGenerator internals only.
+    const { weeks, meta } = await roadmapGenerator.generate({
+      domain,
+      skillLevel,
+      hoursPerDay: Number(hoursPerDay)
+    });
 
-  if (days <= 30) return 2;
+    // ── Persist roadmap weeks (replace old ones) ─────────────────────────────
+    await Roadmap.deleteMany({ goal: goal._id });
 
-  if (days <= 45) return 3;
+    const documents = weeks.map(w => ({ ...w, goal: goal._id }));
+    const createdWeeks = await Roadmap.insertMany(documents);
 
-  if (days <= 60) return 4;
+    // ── Persist roadmap metadata (upsert — one doc per goal) ────────────────
+    const savedMeta = await RoadmapMeta.findOneAndUpdate(
+      { goal: goal._id },
+      { ...meta, goal: goal._id },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
-  if (days <= 75) return 5;
+    // Auto-log roadmap generation activity
+    await logActivity({
+      title: "Roadmap Generated 🗺️",
+      desc: `Generated a ${meta.skillLevel} ${meta.domain.toUpperCase()} roadmap (${meta.estimatedDuration})`,
+      type: "goal_created",
+      xpEarned: 20,
+      userId: req.user
+    });
 
-  return 6;
-
-};
-
-    const totalWeeks = calculateRoadmapWeeks(duration);
-
-    const mernRoadmap = [
-      {
-        title: "Frontend Basics",
-        topics: ["HTML & CSS Basics", "Responsive Design"]
-      },
-      {
-        title: "JavaScript Fundamentals",
-        topics: ["JS Variables & Control Flow", "JS Functions & DOM"]
-      },
-      {
-        title: "React Basics",
-        topics: ["ES6+ Features & Async JS", "React Components & Props", "React State & Hooks"]
-      },
-      {
-        title: "Backend Development",
-        topics: ["React Router & Context API", "Node.js Basics", "Express.js & REST APIs"]
-      },
-      {
-        title: "Database & APIs",
-        topics: ["Middleware & Error Handling", "MongoDB & Mongoose Schemas", "CRUD Operations"]
-      },
-      {
-        title: "Auth, Deployment & Optimization",
-        topics: ["Authentication & JWT", "Frontend-Backend Integration", "Deployment & Hosting", "Performance Optimization"]
-      }
-    ];
-
-    const javaRoadmap = [
-      {
-        title: "Java Foundations",
-        topics: ["Java Syntax & Variables", "Control Flow & Loops"]
-      },
-      {
-        title: "Core Java Concepts",
-        topics: ["Methods & Scope", "Arrays & Strings"]
-      },
-      {
-        title: "Object-Oriented Design",
-        topics: ["Classes & Objects", "Inheritance & Polymorphism"]
-      },
-      {
-        title: "Advanced Java Patterns",
-        topics: ["Abstraction & Interfaces", "Encapsulation & Access Modifiers"]
-      },
-      {
-        title: "Collections & Data Structures",
-        topics: ["ArrayList & LinkedList", "HashMap & HashSet"]
-      },
-      {
-        title: "Java Integration",
-        topics: ["Exception Handling", "File I/O & Streams", "Multithreading Basics", "JDBC Integration"]
-      }
-    ];
-
-    const titleLower = goal.title.toLowerCase();
-
-let roadmapBlueprint = [
-  {
-    title: "Learning Foundations",
-    topics: [
-      "Research the topic",
-      "Understand the fundamentals",
-      "Create a study plan"
-    ]
-  }
-];
-
-if (
-  titleLower.includes("mern") ||
-  titleLower.includes("react") ||
-  titleLower.includes("node") ||
-  titleLower.includes("express") ||
-  titleLower.includes("mongodb")
-) {
-  roadmapBlueprint = mernRoadmap;
-}
-
-else if (
-  titleLower.includes("java") ||
-  titleLower.includes("spring") ||
-  titleLower.includes("jdbc")
-) {
-  roadmapBlueprint = javaRoadmap;
-}
-
-   const roadmapData = [];
-
-for (let i = 1; i <= totalWeeks; i++) {
-
-  const weekConfig =
-    roadmapBlueprint[i - 1] ||
-    roadmapBlueprint[roadmapBlueprint.length - 1];
-
-  roadmapData.push({
-
-    week: i,
-
-    title: `Week ${i}: ${weekConfig.title}`,
-
-    topics: weekConfig.topics
-
-  });
-
-}
-
-    // SAVE ROADMAP WEEKS
-    const documentsToInsert = roadmapData.map(item => ({
-      goal: goal._id,
-      week: item.week,
-      title: item.title,
-      topics: item.topics
-    }));
-
-await Roadmap.deleteMany({
-
-  goal: goal._id
-
-});
-    const createdRoadmap = await Roadmap.insertMany(documentsToInsert);
-
-    res.status(201).json(createdRoadmap);
+    res.status(201).json({ weeks: createdWeeks, meta: savedMeta });
 
   } catch (error) {
 
     console.log(error);
 
-    res.status(500).json({
-      message: "Server Error"
-    });
+    res.status(500).json({ message: error.message || "Server Error" });
 
   }
 
 };
 
 
-// MARK WEEK COMPLETED
+// ─── GET ROADMAP META ─────────────────────────────────────────────────────────
+// GET /api/roadmaps/:goalId/meta
+// Returns the persisted domain/skillLevel/hoursPerDay/estimatedDuration for a goal.
+
+const getRoadmapMeta = async (req, res) => {
+
+  try {
+
+    const meta = await RoadmapMeta.findOne({ goal: req.params.goalId });
+
+    if (!meta) {
+      return res.status(404).json({ message: "No roadmap configuration found for this goal" });
+    }
+
+    res.status(200).json(meta);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({ message: "Server Error" });
+
+  }
+
+};
+
+
+// ─── MARK WEEK COMPLETED ──────────────────────────────────────────────────────
+// PUT /api/roadmaps/:id/complete
+// Unchanged from v1.
+
 const markWeekCompleted = async (req, res) => {
 
   try {
 
-    const roadmap = await Roadmap.findById(req.params.id)
-      .populate("goal");
+    const roadmap = await Roadmap.findById(req.params.id).populate("goal");
 
     if (!roadmap) {
-
-      return res.status(404).json({
-        message: "Roadmap week not found"
-      });
-
+      return res.status(404).json({ message: "Roadmap week not found" });
     }
 
-    // OWNERSHIP CHECK
+    // Ownership check
     if (roadmap.goal.user.toString() !== req.user) {
-
-      return res.status(401).json({
-        message: "Not authorized"
-      });
-
+      return res.status(401).json({ message: "Not authorized" });
     }
 
     roadmap.completed = true;
 
     await roadmap.save();
 
-    res.status(200).json({
-      message: "Week marked as completed",
-      roadmap
+    // Auto-log roadmap milestone completion
+    await logActivity({
+      title: "Roadmap Milestone Completed ⚡",
+      desc: `Completed ${roadmap.title}`,
+      type: "roadmap_milestone_completed",
+      xpEarned: 20,
+      userId: req.user
     });
+
+    res.status(200).json({ message: "Week marked as completed", roadmap });
 
   } catch (error) {
 
     console.log(error);
 
-    res.status(500).json({
-      message: "Server Error"
-    });
+    res.status(500).json({ message: "Server Error" });
 
   }
 
 };
 
 
-// GET PROGRESS
+// ─── GET PROGRESS ─────────────────────────────────────────────────────────────
+// GET /api/roadmaps/:goalId/progress
+// Unchanged from v1.
+
 const getProgress = async (req, res) => {
 
   try {
 
-    const roadmapWeeks = await Roadmap.find({
-      goal: req.params.goalId
-    });
+    const roadmapWeeks = await Roadmap.find({ goal: req.params.goalId });
 
-    const totalWeeks = roadmapWeeks.length;
-
-    const completedWeeks = roadmapWeeks.filter(
-      week => week.completed
-    ).length;
-
-    const progress = totalWeeks
+    const totalWeeks     = roadmapWeeks.length;
+    const completedWeeks = roadmapWeeks.filter(w => w.completed).length;
+    const progress       = totalWeeks
       ? ((completedWeeks / totalWeeks) * 100).toFixed(0)
       : 0;
 
     res.status(200).json({
-
       totalWeeks,
       completedWeeks,
-
       progress: `${progress}%`
-
     });
 
   } catch (error) {
 
     console.log(error);
 
-    res.status(500).json({
-      message: "Server Error"
-    });
+    res.status(500).json({ message: "Server Error" });
 
   }
 
 };
 
 
-// GET ROADMAP WEEKS
+// ─── GET ROADMAP WEEKS ────────────────────────────────────────────────────────
+// GET /api/roadmaps/:goalId
+// Unchanged from v1.
+
 const getRoadmapWeeks = async (req, res) => {
 
   try {
 
-    const roadmapWeeks = await Roadmap.find({
-      goal: req.params.goalId
-    }).sort({ week: 1 });
+    const roadmapWeeks = await Roadmap.find({ goal: req.params.goalId })
+      .sort({ week: 1 });
 
     res.status(200).json(roadmapWeeks);
 
@@ -284,9 +210,7 @@ const getRoadmapWeeks = async (req, res) => {
 
     console.log(error);
 
-    res.status(500).json({
-      message: "Server Error"
-    });
+    res.status(500).json({ message: "Server Error" });
 
   }
 
@@ -295,6 +219,7 @@ const getRoadmapWeeks = async (req, res) => {
 
 module.exports = {
   generateRoadmap,
+  getRoadmapMeta,
   markWeekCompleted,
   getProgress,
   getRoadmapWeeks
