@@ -15,12 +15,14 @@ const goalRoutes = require("./routes/goalRoutes");
 const userRoutes = require("./routes/userRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
   res.send("GrindPath API running");

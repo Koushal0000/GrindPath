@@ -13,6 +13,7 @@ import {
   User
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Bot } from "lucide-react";
 
 const UserCard = ({ collapsed = false, user, level, currentXP, progressPercent, streak }) => (
   <div className={`mb-6 ${collapsed ? "flex flex-col items-center gap-2" : "bg-zinc-900/40 border border-zinc-800/60 rounded-2xl p-4"}`}>
@@ -119,7 +120,8 @@ const Sidebar = () => {
     { name: "Calendar", path: "/calendar", icon: Calendar },
     { name: "Analytics", path: "/analytics", icon: BarChart2 },
     { name: "Profile", path: "/profile", icon: User },
-    { name: "Settings", path: "/settings", icon: SettingsIcon }
+    { name: "Settings", path: "/settings", icon: SettingsIcon },
+    { name: "AI Mentor",path: "/ai-mentor",icon: Bot}
   ]
 
   const currentXP = xp % 100

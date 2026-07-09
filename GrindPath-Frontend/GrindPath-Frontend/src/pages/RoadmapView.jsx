@@ -11,7 +11,6 @@ import { getGoals } from "../services/goalService"
 import {
   ArrowLeft,
   CheckCircle,
-  Compass,
   BookmarkCheck,
   Play,
   Clock,
@@ -20,7 +19,6 @@ import {
   ChevronDown,
   Layers,
   Brain,
-  Server,
   Cloud,
   Code2,
   BarChart3,

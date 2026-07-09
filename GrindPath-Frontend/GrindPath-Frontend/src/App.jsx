@@ -16,6 +16,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import Sidebar from "./components/Sidebar"
 import Navbar from "./components/Navbar"
 import MobileBottomNav from "./components/MobileBottomNav"
+import AIMentor from "./pages/AIMentor";
 
 const DashboardLayout = ({ children }) => {
   const { isFocusMode } = useAuth()
@@ -78,6 +79,7 @@ const AppRoutes = () => {
       <Route path="/profile" element={protectedPage(<Profile />)} />
       <Route path="/settings" element={protectedPage(<Settings />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/ai-mentor" element={<AIMentor />} />
     </Routes>
   )
 }
