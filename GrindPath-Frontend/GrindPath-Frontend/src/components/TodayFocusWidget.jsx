@@ -4,17 +4,11 @@ import { Target, CheckCircle, Zap } from "lucide-react"
 const TodayFocusWidget = () => {
   const { goals, habits, pomodoroSessions, analyticsData, user } = useAuth()
 
-  // Active goals from MongoDB
   const activeGoals = goals.filter(g => !g.completed)
-
-  // Habits from local state (reset daily via AuthContext)
   const habitsDone = habits.filter(h => h.completed).length
   const habitsTotal = habits.length
 
-  // Focus sessions today: prefer backend analytics (habitsCompletedToday) or fallback to localStorage
   const pomodorosDoneToday = (() => {
-    // Use analytics summary habitsCompletedToday for habits, but we need today pomodoros specifically
-    // Use localStorage for today's specific pomodoro count (persisted per session)
     const storedUser = user || JSON.parse(localStorage.getItem("grindpath_user") || "{}")
     if (!storedUser._id) return pomodoroSessions
     const dailyKey = `grindpath_${storedUser._id}_pomodoro_daily`
@@ -23,7 +17,6 @@ const TodayFocusWidget = () => {
     return dailyData[new Date().toDateString()] || 0
   })()
 
-  // Assuming a daily target of 4 pomodoros as standard
   const targetPomodoros = 4
 
   const metrics = [
@@ -32,8 +25,8 @@ const TodayFocusWidget = () => {
       label: "Active Goals",
       sub: "Currently in grind",
       value: activeGoals.length,
-      color: "bg-blue-500/10 text-blue-400",
-      valueColor: "text-blue-400"
+      accent: "text-[#3b82f6]",
+      iconBg: "bg-blue-500/15 border-blue-500/30"
     },
     {
       icon: CheckCircle,
@@ -41,8 +34,8 @@ const TodayFocusWidget = () => {
       sub: "Completed today",
       value: habitsDone,
       suffix: `/${habitsTotal}`,
-      color: "bg-indigo-500/10 text-indigo-400",
-      valueColor: "text-indigo-400"
+      accent: "text-[#6366f1]",
+      iconBg: "bg-indigo-500/15 border-indigo-500/30"
     },
     {
       icon: Zap,
@@ -50,44 +43,44 @@ const TodayFocusWidget = () => {
       sub: `Target: ${targetPomodoros}`,
       value: pomodorosDoneToday,
       suffix: `/${targetPomodoros}`,
-      color: "bg-amber-500/10 text-amber-400",
-      valueColor: "text-amber-400"
+      accent: "text-amber-400",
+      iconBg: "bg-amber-500/15 border-amber-500/30"
     }
   ]
 
   return (
-    <div className="glass-panel p-5 rounded-2xl border border-zinc-800/50 space-y-4">
+    <div className="bg-[#111827] border border-indigo-500/20 rounded-3xl p-6 shadow-2xl space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Today&apos;s Focus</h3>
+        <h3 className="text-sm font-bold text-zinc-100">Today&apos;s Focus</h3>
         {analyticsData?.summary && (
-          <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Live</span>
+          <span className="text-xs text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">Live</span>
         )}
       </div>
 
       <div className="space-y-3">
-        {metrics.map(({ icon: Icon, label, sub, value, suffix, color, valueColor }) => (
-          <div key={label} className="flex items-center justify-between bg-zinc-900 rounded-xl p-3 border border-zinc-800/40">
-            <div className="flex items-center gap-2.5">
-              <div className={`p-1.5 rounded-lg ${color}`}>
-                <Icon size={14} />
+        {metrics.map(({ icon: Icon, label, sub, value, suffix, accent, iconBg }) => (
+          <div key={label} className="flex items-center justify-between bg-[#0b1020] rounded-2xl px-4 py-3.5 border border-indigo-500/15">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl border ${iconBg}`}>
+                <Icon size={15} className={accent} />
               </div>
               <div>
-                <p className="text-xs font-bold text-zinc-200">{label}</p>
-                <p className="text-[10px] text-zinc-500">{sub}</p>
+                <p className="text-sm font-bold text-zinc-100">{label}</p>
+                <p className="text-xs text-zinc-400 font-medium">{sub}</p>
               </div>
             </div>
-            <p className={`text-lg font-black ${valueColor}`}>
+            <p className={`text-2xl font-black ${accent}`}>
               {value}
-              {suffix && <span className="text-xs text-zinc-600">{suffix}</span>}
+              {suffix && <span className="text-xs text-zinc-500 font-semibold">{suffix}</span>}
             </p>
           </div>
         ))}
       </div>
 
       {analyticsData?.summary && (
-        <div className="pt-3 border-t border-zinc-900">
-          <p className="text-[10px] text-zinc-600 font-medium leading-relaxed">
-            This month: <span className="text-zinc-400 font-bold">{analyticsData.summary.completedRoadmapWeeks} roadmap milestones</span> · <span className="text-zinc-400 font-bold">{analyticsData.summary.focusHoursThisMonth}h focus</span>
+        <div className="pt-4 border-t border-indigo-500/15">
+          <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+            This month: <span className="text-zinc-200 font-bold">{analyticsData.summary.completedRoadmapWeeks} milestones</span> · <span className="text-zinc-200 font-bold">{analyticsData.summary.focusHoursThisMonth}h focus</span>
           </p>
         </div>
       )}

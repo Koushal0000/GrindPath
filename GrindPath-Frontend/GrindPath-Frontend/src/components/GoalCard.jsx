@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { 
@@ -15,24 +15,50 @@ import {
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { toast } from "react-toastify"
+import { getProgress } from "../services/roadmapService"
 
 const GoalCard = ({ goal, onDelete, onEdit, onToggleComplete, onUpdate }) => {
   const { gainXP, updateStreak } = useAuth()
   const navigate = useNavigate()
   const [isExpanded, setIsExpanded] = useState(false)
   const [newSubtaskText, setNewSubtaskText] = useState("")
+  const [roadmapProgressPct, setRoadmapProgressPct] = useState(null)
   
   const priority = goal.priority || "Medium"
   const deadline = goal.deadline || ""
   const notes = goal.notes || ""
   const subtasks = goal.subtasks || []
 
-  // Calculate dynamic progress
+  // Fetch roadmap progress if available for this goal
+  useEffect(() => {
+    let isMounted = true
+    const fetchRoadmapProgress = async () => {
+      try {
+        const data = await getProgress(goal._id)
+        if (isMounted && data && data.totalWeeks > 0) {
+          const pct = Math.round((data.completedWeeks / data.totalWeeks) * 100)
+          setRoadmapProgressPct(pct)
+        }
+      } catch {
+        // No roadmap generated for this goal yet — fall back to subtasks/completed
+      }
+    }
+    fetchRoadmapProgress()
+    return () => { isMounted = false }
+  }, [goal._id])
+
+  // Calculate dynamic progress (subtasks priority, then roadmap progress, then completed flag)
   const totalSubtasks = subtasks.length
   const completedSubtasksCount = subtasks.filter((s) => s.completed).length
-  const progressPercent = totalSubtasks > 0 
-    ? Math.round((completedSubtasksCount / totalSubtasks) * 100) 
-    : (goal.completed ? 100 : 0)
+  
+  let progressPercent = 0
+  if (totalSubtasks > 0) {
+    progressPercent = Math.round((completedSubtasksCount / totalSubtasks) * 100)
+  } else if (roadmapProgressPct !== null) {
+    progressPercent = roadmapProgressPct
+  } else if (goal.completed) {
+    progressPercent = 100
+  }
 
   // Subtask actions
   const handleAddSubtask = (e) => {
@@ -121,14 +147,14 @@ const GoalCard = ({ goal, onDelete, onEdit, onToggleComplete, onUpdate }) => {
 
   return (
     <div 
-      className={`glass-card rounded-3xl p-6 transition-all duration-300 relative overflow-hidden ${
-        goal.completed 
+      className={`glass-card rounded-3xl p-6 transition-all duration-300 relative overflow-hidden flex flex-col justify-between ${
+        goal.completed || progressPercent === 100
           ? "border-emerald-500/20 bg-emerald-950/5 shadow-lg shadow-emerald-950/10" 
           : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/30"
       }`}
     >
       {/* Complete tag banner */}
-      {goal.completed && (
+      {(goal.completed || progressPercent === 100) && (
         <div className="absolute top-0 right-0 bg-emerald-500 text-black px-4 py-1 font-bold text-[10px] uppercase rounded-bl-2xl tracking-widest shadow-sm flex items-center gap-1">
           <CheckCircle size={10} className="stroke-[3]" />
           <span>Completed</span>
@@ -177,12 +203,12 @@ const GoalCard = ({ goal, onDelete, onEdit, onToggleComplete, onUpdate }) => {
         <div className="mt-1">
           <div className="flex justify-between text-xs font-semibold mb-1.5">
             <span className="text-zinc-400">Task Progress</span>
-            <span className={goal.completed ? "text-emerald-400" : "text-blue-400"}>{progressPercent}%</span>
+            <span className={goal.completed || progressPercent === 100 ? "text-emerald-400" : "text-blue-400"}>{progressPercent}%</span>
           </div>
           <div className="w-full bg-zinc-950 h-2.5 border border-zinc-900 rounded-full overflow-hidden">
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
-                goal.completed 
+                goal.completed || progressPercent === 100
                   ? "bg-gradient-to-r from-emerald-500 to-teal-400 glow-emerald" 
                   : "bg-gradient-to-r from-blue-500 to-indigo-500"
               }`}
@@ -190,54 +216,54 @@ const GoalCard = ({ goal, onDelete, onEdit, onToggleComplete, onUpdate }) => {
             />
           </div>
         </div>
+      </div>
 
-        {/* Action button triggers */}
-        <div className="flex items-center justify-between mt-3 pt-4 border-t border-zinc-900/80">
-          <div className="flex gap-2">
-            <button 
-              onClick={() => onToggleComplete(goal)}
-              className={`p-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
-                goal.completed 
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black" 
-                  : "bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200"
-              }`}
-              title={goal.completed ? "Mark Incomplete" : "Mark Goal Completed"}
-            >
-              <CheckCircle size={15} />
-            </button>
-            <button 
-              onClick={() => onEdit(goal)}
-              className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
-              title="Edit Goal"
-            >
-              <Edit3 size={15} />
-            </button>
-            <button 
-              onClick={handleDeleteClick}
-              className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-850 hover:border-rose-500/30 text-zinc-500 hover:text-rose-400 transition cursor-pointer"
-              title="Delete Goal"
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
+      {/* Action button triggers */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 mt-4 pt-4 border-t border-zinc-900/80">
+        <div className="flex gap-1.5">
+          <button 
+            onClick={() => onToggleComplete(goal)}
+            className={`p-2 rounded-xl border transition-all duration-200 cursor-pointer ${
+              goal.completed 
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black" 
+                : "bg-zinc-950 border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200"
+            }`}
+            title={goal.completed ? "Mark Incomplete" : "Mark Goal Completed"}
+          >
+            <CheckCircle size={15} />
+          </button>
+          <button 
+            onClick={() => onEdit(goal)}
+            className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+            title="Edit Goal"
+          >
+            <Edit3 size={15} />
+          </button>
+          <button 
+            onClick={handleDeleteClick}
+            className="p-2 rounded-xl bg-zinc-950 border border-zinc-850 hover:border-rose-500/30 text-zinc-500 hover:text-rose-400 transition cursor-pointer"
+            title="Delete Goal"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleRoadmapClick}
-              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md shadow-indigo-600/10"
-            >
-              <BookOpen size={13} />
-              <span>🗺️ View Roadmap</span>
-            </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleRoadmapClick}
+            className="flex items-center gap-1.5 px-2.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-semibold cursor-pointer transition shadow-md shadow-indigo-600/10 whitespace-nowrap shrink-0"
+          >
+            <BookOpen size={13} />
+            <span>View Roadmap</span>
+          </button>
 
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-xl text-xs font-semibold cursor-pointer transition"
-            >
-              <span>Subtasks</span>
-              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
-          </div>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1 px-2.5 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-xl text-xs font-semibold cursor-pointer transition whitespace-nowrap shrink-0"
+          >
+            <span>Subtasks</span>
+            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
         </div>
       </div>
 

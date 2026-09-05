@@ -33,138 +33,139 @@ const Dashboard = () => {
   const scoreBreakdown = analyticsData?.scoreBreakdown || null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 select-none">
 
-      {/* Greeting Banner */}
+      {/* Greeting Banner / Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-900/30 border border-zinc-800/50 p-5 md:p-6 rounded-2xl relative overflow-hidden"
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#111827] border border-indigo-500/25 p-6 md:p-8 rounded-3xl relative overflow-hidden shadow-2xl"
       >
-        <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-blue-500/5 to-transparent pointer-events-none" />
-        <div>
-          <h1 className="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+        <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-blue-600/10 via-indigo-600/10 to-transparent pointer-events-none" />
+        <div className="space-y-1.5 relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
             <span>Welcome back, {user?.name?.split(" ")[0] || "Grinder"}</span>
-            <Sparkles size={18} className="text-yellow-400 fill-yellow-400 animate-pulse" />
+            <Sparkles size={22} className="text-amber-400 fill-amber-400 animate-pulse" />
           </h1>
-          <p className="text-zinc-500 text-xs mt-1 font-medium">
-            Level {level} • {xp} XP total • {streak > 0 ? `🔥 ${streak} day streak` : "Start your streak today!"}
+          <p className="text-zinc-300 text-sm font-semibold">
+            Level {level} • <span className="text-indigo-400 font-bold">{xp} XP Total</span> • {streak > 0 ? `🔥 ${streak} Day Streak active!` : "Start your streak today!"}
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-3 flex-wrap relative z-10 w-full sm:w-auto">
           <button
             onClick={() => navigate("/goals")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-lg shadow-blue-600/15"
+            className="px-5 py-3 bg-gradient-to-r from-[#3b82f6] via-[#6366f1] to-[#a855f7] hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-extrabold text-xs flex items-center gap-2 cursor-pointer transition-all duration-300 shadow-xl shadow-blue-600/20 active:scale-[0.99]"
           >
-            <PlusCircle size={13} />
+            <PlusCircle size={15} />
             <span>New Goal</span>
           </button>
           <button
             onClick={() => navigate("/analytics")}
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition"
+            className="px-4.5 py-3 bg-[#0b1020] hover:bg-[#151d30] border border-indigo-500/20 text-zinc-200 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer transition shadow-md"
           >
-            <BarChart2 size={13} />
+            <BarChart2 size={15} className="text-blue-400" />
             <span>Analytics</span>
           </button>
           <button
             onClick={() => navigate("/calendar")}
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition"
+            className="px-4.5 py-3 bg-[#0b1020] hover:bg-[#151d30] border border-indigo-500/20 text-zinc-200 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer transition shadow-md"
           >
-            <Calendar size={13} />
+            <Calendar size={15} className="text-indigo-400" />
             <span>Calendar</span>
           </button>
         </div>
       </motion.div>
 
-      {/* Stats Row */}
+      {/* Top 4 Stat Cards */}
       <StatsGrid />
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Dashboard Layout Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Analytics & Widgets — left 2/3 */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Analytics & Core Widgets — left 2/3 */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <WeeklyChart />
             <CategoryStats />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <TodayFocusWidget />
             <UpcomingDeadlinesWidget />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <PomodoroTimer />
             <HabitTracker />
           </div>
         </div>
 
-        {/* Right panel */}
-        <div className="space-y-6">
+        {/* Right Column — Productivity Score & Timeline */}
+        <div className="space-y-8">
 
           {/* Productivity Score Card */}
-          <div className="glass-panel p-5 rounded-2xl border border-zinc-800/50 space-y-4">
+          <div className="bg-[#111827] p-6 rounded-3xl border border-indigo-500/25 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Productivity Score</h3>
+              <h3 className="text-xs font-extrabold text-zinc-300 uppercase tracking-wider">Productivity Score</h3>
               {analyticsData && (
-                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Live</span>
+                <span className="text-xs text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">Live Data</span>
               )}
             </div>
-            <div className="flex items-center justify-center">
-              <div className="relative w-28 h-28">
+            <div className="flex items-center justify-center py-2">
+              <div className="relative w-32 h-32">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#27272a" strokeWidth="8" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#1e293b" strokeWidth="8" />
                   <circle
                     cx="50" cy="50" r="40"
                     fill="none"
-                    stroke="url(#prodGrad)"
+                    stroke="url(#dashScoreGrad)"
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={`${productivityScore * 2.51} 251`}
                     className="transition-all duration-1000"
                   />
                   <defs>
-                    <linearGradient id="prodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <linearGradient id="dashScoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#818cf8" />
+                      <stop offset="50%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#a855f7" />
                     </linearGradient>
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-white">{productivityScore}</span>
-                  <span className="text-[10px] text-zinc-500 font-bold">/100</span>
+                  <span className="text-3xl font-black text-white">{productivityScore}</span>
+                  <span className="text-xs text-zinc-400 font-bold">/ 100</span>
                 </div>
               </div>
             </div>
 
             {/* Score Breakdown */}
             {scoreBreakdown ? (
-              <div className="space-y-2">
+              <div className="space-y-3 pt-2">
                 {scoreBreakdown.map(item => (
                   <div key={item.label} className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-semibold">
-                      <span className="text-zinc-500">{item.label}</span>
-                      <span className="text-zinc-400">{item.points}/{item.max} pts</span>
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-zinc-300">{item.label}</span>
+                      <span className="text-indigo-400 font-bold">{item.points}/{item.max} pts</span>
                     </div>
-                    <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-[#0b1020] h-2 rounded-full overflow-hidden border border-indigo-500/10">
                       <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-700"
+                        className="h-full bg-gradient-to-r from-[#3b82f6] to-[#6366f1] rounded-full transition-all duration-700"
                         style={{ width: `${(item.points / item.max) * 100}%` }}
                       />
                     </div>
-                    <p className="text-[9px] text-zinc-600">{item.desc}</p>
+                    <p className="text-[11px] text-zinc-400 font-medium">{item.desc}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-zinc-900 rounded-xl p-3">
-                  <p className="text-base font-black text-blue-400">{completedGoals}</p>
-                  <p className="text-[10px] text-zinc-500 font-medium mt-0.5">Goals Done</p>
+              <div className="grid grid-cols-2 gap-3 text-center pt-2">
+                <div className="bg-[#0b1020] border border-indigo-500/15 rounded-2xl p-4">
+                  <p className="text-xl font-black text-blue-400">{completedGoals}</p>
+                  <p className="text-xs text-zinc-400 font-semibold mt-0.5">Goals Done</p>
                 </div>
-                <div className="bg-zinc-900 rounded-xl p-3">
-                  <p className="text-base font-black text-indigo-400">{pomodoroSessions}</p>
-                  <p className="text-[10px] text-zinc-500 font-medium mt-0.5">Sessions</p>
+                <div className="bg-[#0b1020] border border-indigo-500/15 rounded-2xl p-4">
+                  <p className="text-xl font-black text-indigo-400">{pomodoroSessions}</p>
+                  <p className="text-xs text-zinc-400 font-semibold mt-0.5">Sessions</p>
                 </div>
               </div>
             )}

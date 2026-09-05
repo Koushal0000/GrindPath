@@ -14,7 +14,7 @@ import SkeletonLoader from "./SkeletonLoader"
 const ActivityTimeline = () => {
   const { activities } = useAuth()
 
-  const loading = false // activities loaded via AuthContext
+  const loading = false
 
   const getIcon = (type) => {
     switch (type) {
@@ -31,13 +31,13 @@ const ActivityTimeline = () => {
 
   const getColor = (type) => {
     switch (type) {
-      case "pomodoro_completed": return "text-blue-400 bg-blue-500/10 border-blue-500/20"
-      case "habit_completed": return "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
-      case "goal_created": return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-      case "level_up": return "text-purple-400 bg-purple-500/10 border-purple-500/20"
-      case "goal_completed": return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-      case "roadmap_milestone_completed": return "text-amber-400 bg-amber-500/10 border-amber-500/20"
-      default: return "text-amber-400 bg-amber-500/10 border-amber-500/20"
+      case "pomodoro_completed":             return "text-[#3b82f6] bg-[#0d1527] border-blue-500/35"
+      case "habit_completed":                return "text-[#6366f1] bg-[#12142e] border-indigo-500/35"
+      case "goal_created":                   return "text-emerald-400 bg-[#0d211a] border-emerald-500/35"
+      case "level_up":                       return "text-[#a855f7] bg-[#221033] border-purple-500/35"
+      case "goal_completed":                 return "text-emerald-400 bg-[#0d211a] border-emerald-500/35"
+      case "roadmap_milestone_completed":    return "text-amber-400 bg-[#261d0f] border-amber-500/35"
+      default:                               return "text-amber-400 bg-[#261d0f] border-amber-500/35"
     }
   }
 
@@ -55,46 +55,61 @@ const ActivityTimeline = () => {
   }
 
   return (
-    <div className="glass-card rounded-3xl p-6 border-zinc-800 bg-zinc-900/30 h-full flex flex-col">
-      <div className="flex items-center justify-between pb-4 border-b border-zinc-900/80 mb-5">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-lg">
+    <div className="bg-[#111827] border border-indigo-500/20 rounded-3xl p-6 shadow-2xl h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-indigo-500/15 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600/15 border border-blue-500/25 text-[#3b82f6] rounded-xl">
             <Activity size={16} />
           </div>
-          <h3 className="font-bold text-zinc-200 text-sm">Recent Activity</h3>
+          <div>
+            <h3 className="font-bold text-zinc-100 text-base">Recent Activity</h3>
+          </div>
         </div>
         {activities.length > 0 && (
-          <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
             {activities.length} events
           </span>
         )}
       </div>
 
-      <div className="relative flex-1 pl-4 border-l border-zinc-800 space-y-6 overflow-y-auto max-h-[420px] scrollbar-thin">
+      {/* Timeline List Container */}
+      <div className="flex-1 space-y-6 overflow-y-auto max-h-[480px] scrollbar-thin px-3 py-1">
         {loading ? (
           <SkeletonLoader type="timeline" />
         ) : activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-10 text-zinc-500 -ml-4">
-            <RefreshCw size={32} className="text-zinc-700 mb-3" />
-            <p className="text-xs font-semibold">No activity yet.</p>
-            <p className="text-[10px] mt-1 text-zinc-600">Complete a goal, habit, or focus session to build your timeline!</p>
+          <div className="flex flex-col items-center justify-center text-center py-10 gap-3">
+            <RefreshCw size={32} className="text-indigo-500/20" />
+            <div>
+              <p className="text-zinc-300 font-semibold text-sm">No activity yet.</p>
+              <p className="text-zinc-500 text-xs mt-1">Complete a goal, habit, or focus session to build your timeline!</p>
+            </div>
           </div>
         ) : (
-          activities.map((act) => {
+          activities.map((act, index) => {
             const Icon = getIcon(act.type)
+            const isLast = index === activities.length - 1
             return (
-              <div key={act._id} className="relative">
-                <div className={`absolute -left-[27px] top-0 p-1.5 rounded-xl border ${getColor(act.type)}`}>
-                  <Icon size={12} />
+              <div key={act._id} className="flex items-start gap-4 relative">
+                {/* Left Column: 32px Icon Badge + Perfectly Centered Connecting Line */}
+                <div className="relative flex flex-col items-center shrink-0">
+                  <div className={`w-8 h-8 rounded-xl border flex items-center justify-center relative z-10 shadow-md ${getColor(act.type)}`}>
+                    <Icon size={14} />
+                  </div>
+                  {!isLast && (
+                    <div className="absolute top-8 -bottom-6 w-0.5 bg-indigo-500/25 left-1/2 -translate-x-1/2 pointer-events-none" />
+                  )}
                 </div>
-                <div className="pl-2">
-                  <span className="text-zinc-500 text-[10px] block font-semibold">
+
+                {/* Right Column: Event Details */}
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <span className="text-zinc-400 text-[11px] block font-semibold">
                     {formatTime(act.createdAt)}
                   </span>
-                  <h4 className="text-zinc-200 text-xs font-bold mt-0.5">{act.title}</h4>
-                  <p className="text-zinc-500 text-[11px] mt-0.5 font-medium">{act.desc}</p>
+                  <h4 className="text-zinc-100 text-xs font-bold mt-0.5">{act.title}</h4>
+                  <p className="text-zinc-400 text-[11px] mt-0.5 font-medium">{act.desc}</p>
                   {act.xpEarned > 0 && (
-                    <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full mt-1 inline-block">
+                    <span className="text-[10px] font-extrabold text-amber-400 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full mt-1.5 inline-block">
                       +{act.xpEarned} XP
                     </span>
                   )}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import {
   getRoadmapWeeks,
   generateRoadmap,
@@ -216,12 +217,17 @@ const RoadmapView = () => {
     }
   }
 
+  const { gainXP, updateStreak, refreshDashboard } = useAuth()
+
   // ── Mark week complete ────────────────────────────────────────────────────
   const handleCompleteWeek = async (weekId) => {
     try {
       await markWeekCompleted(weekId)
+      gainXP(20)
+      if (updateStreak) updateStreak()
       toast.success("Weekly milestone completed! +20 XP")
       fetchData()
+      if (refreshDashboard) refreshDashboard()
     } catch (err) {
       console.error(err)
       toast.error("Failed to complete weekly milestone")

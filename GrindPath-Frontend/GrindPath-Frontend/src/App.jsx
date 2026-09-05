@@ -16,28 +16,33 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import Sidebar from "./components/Sidebar"
 import Navbar from "./components/Navbar"
 import MobileBottomNav from "./components/MobileBottomNav"
-import AIMentor from "./pages/AIMentor";
+import AIMentor from "./pages/AIMentor"
 
 const DashboardLayout = ({ children }) => {
   const { isFocusMode } = useAuth()
 
   if (isFocusMode) {
-    return <div className="min-h-screen bg-black text-white">{children}</div>
+    return <div className="min-h-screen bg-black text-white flex flex-col justify-center items-center">{children}</div>
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex relative overflow-hidden">
-      {/* Subtle ambient glows */}
-      <div className="fixed top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full bg-blue-900/8 blur-[150px] pointer-events-none pulse-glow" />
-      <div className="fixed bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full bg-indigo-900/8 blur-[150px] pointer-events-none pulse-glow" />
-      
+    <div className="h-screen bg-[#070b18] text-zinc-100 flex overflow-hidden font-sans relative">
+      {/* Sophisticated ambient glows */}
+      <div className="fixed top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full bg-blue-600/10 blur-[140px] pointer-events-none pulse-glow" />
+      <div className="fixed bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full bg-indigo-600/10 blur-[140px] pointer-events-none pulse-glow" />
+      <div className="fixed top-[40%] right-[30%] w-[25%] h-[25%] rounded-full bg-purple-600/5 blur-[120px] pointer-events-none" />
+
+      {/* Fixed sidebar — stays in place regardless of content height */}
       <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden pb-20 md:pb-0">
+
+      {/* Main content column — fills remaining viewport height, scrolls independently */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden pb-20 md:pb-0 relative z-10">
         <Navbar />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scrollbar">
           {children}
         </main>
       </div>
+
       <MobileBottomNav />
     </div>
   )
@@ -48,12 +53,12 @@ const AppRoutes = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#070b18] flex flex-col items-center justify-center">
         <div className="relative w-16 h-16">
           <div className="w-full h-full border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center text-blue-400 font-black text-xs">GP</div>
         </div>
-        <p className="mt-4 text-zinc-500 text-sm animate-pulse">Loading GrindPath...</p>
+        <p className="mt-4 text-zinc-500 text-sm font-medium animate-pulse">Loading GrindPath...</p>
       </div>
     )
   }
@@ -78,8 +83,8 @@ const AppRoutes = () => {
       <Route path="/analytics" element={protectedPage(<Analytics />)} />
       <Route path="/profile" element={protectedPage(<Profile />)} />
       <Route path="/settings" element={protectedPage(<Settings />)} />
+      <Route path="/ai-mentor" element={protectedPage(<AIMentor />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/ai-mentor" element={<AIMentor />} />
     </Routes>
   )
 }

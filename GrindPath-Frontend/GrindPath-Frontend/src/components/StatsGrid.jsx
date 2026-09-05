@@ -20,28 +20,40 @@ const StatsGrid = () => {
       value: streak === 0 ? "0 Days" : `${streak} Days`,
       desc: "Consecutive goal days",
       icon: Flame,
-      color: "from-amber-500 to-orange-500 bg-amber-500/10 border-amber-500/20 text-amber-500"
+      accent: "text-amber-400",
+      iconBg: "bg-amber-500/15 border-amber-500/30",
+      border: "border-amber-500/15 hover:border-amber-500/30",
+      glow: "hover:shadow-amber-500/10"
     },
     {
       name: "Active Objectives",
       value: activeCount,
       desc: "Goals currently in grind",
       icon: Target,
-      color: "from-blue-500 to-indigo-500 bg-blue-500/10 border-blue-500/20 text-blue-400"
+      accent: "text-[#3b82f6]",
+      iconBg: "bg-blue-500/15 border-blue-500/30",
+      border: "border-indigo-500/15 hover:border-indigo-500/35",
+      glow: "hover:shadow-blue-500/10"
     },
     {
-      name: "Milestone Completed",
+      name: "Milestones Completed",
       value: completedCount,
-      desc: `${totalCount} overall registered`,
+      desc: `${totalCount} goals total`,
       icon: CheckCircle2,
-      color: "from-emerald-500 to-teal-500 bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+      accent: "text-emerald-400",
+      iconBg: "bg-emerald-500/15 border-emerald-500/30",
+      border: "border-indigo-500/15 hover:border-emerald-500/30",
+      glow: "hover:shadow-emerald-500/10"
     },
     {
       name: "Current Level",
       value: `LVL ${level}`,
       desc: `${xp} accumulated XP`,
       icon: Award,
-      color: "from-purple-500 to-pink-500 bg-purple-500/10 border-purple-500/20 text-purple-400"
+      accent: "text-[#a855f7]",
+      iconBg: "bg-purple-500/15 border-purple-500/30",
+      border: "border-indigo-500/15 hover:border-purple-500/30",
+      glow: "hover:shadow-purple-500/10"
     }
   ]
 
@@ -49,9 +61,7 @@ const StatsGrid = () => {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
+      transition: { staggerChildren: 0.08 }
     }
   }
 
@@ -73,15 +83,15 @@ const StatsGrid = () => {
           <motion.div
             key={stat.name}
             variants={cardVariants}
-            className="glass-card rounded-3xl p-5 hover:border-zinc-700 transition duration-300 flex items-start gap-4"
+            className={`bg-[#111827] border ${stat.border} ${stat.glow} rounded-3xl p-5 md:p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 flex items-start gap-4`}
           >
-            <div className={`p-3 rounded-2xl border ${stat.color.split(" ").slice(2).join(" ")}`}>
-              <Icon size={20} className={stat.color.split(" ").slice(-1)[0]} />
+            <div className={`p-3 rounded-2xl border shrink-0 ${stat.iconBg}`}>
+              <Icon size={22} className={stat.accent} />
             </div>
-            <div>
-              <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-bold block">{stat.name}</span>
-              <p className="text-2xl font-black text-zinc-100 tracking-tight mt-1 leading-none">{stat.value}</p>
-              <span className="text-zinc-500 text-[10px] block mt-1.5 font-medium">{stat.desc}</span>
+            <div className="min-w-0">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider block leading-tight">{stat.name}</span>
+              <p className={`text-3xl font-black tracking-tight mt-1.5 leading-none ${stat.accent}`}>{stat.value}</p>
+              <span className="text-zinc-400 text-xs block mt-2 font-medium">{stat.desc}</span>
             </div>
           </motion.div>
         )

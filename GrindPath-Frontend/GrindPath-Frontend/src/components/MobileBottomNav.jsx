@@ -12,7 +12,7 @@ const MobileBottomNav = () => {
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-zinc-950/90 backdrop-blur-md border-t border-zinc-900 z-50 flex items-center justify-around px-2 py-3 pb-safe">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#07090e]/95 backdrop-blur-xl border-t border-zinc-800/60 z-50 flex items-center justify-around px-2 py-3 pb-safe">
       {navItems.map((item) => {
         const Icon = item.icon
         const isActive = location.pathname === item.path || (item.path === "/goals" && location.pathname.startsWith("/roadmaps"))

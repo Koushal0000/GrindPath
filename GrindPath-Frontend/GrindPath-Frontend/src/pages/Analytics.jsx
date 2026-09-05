@@ -30,7 +30,7 @@ const MetricCard = ({ icon: Icon, label, value, sub, color, delay = 0 }) => (
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-xs shadow-xl">
+    <div className="bg-[#0d1117] border border-indigo-500/25 rounded-xl p-3 text-xs shadow-xl">
       <p className="text-zinc-400 font-bold mb-1">{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="font-semibold">
@@ -42,14 +42,23 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 const Analytics = () => {
-  const { goals, pomodoroSessions, streak, habits, xp, user } = useAuth()
+  const { goals, pomodoroSessions, streak, habits, xp, user, analyticsData } = useAuth()
 
   useEffect(() => {
     document.title = "GrindPath – Analytics"
   }, [])
 
-  // Build weekly Pomodoro sessions data (last 7 days)
+  // Build weekly Pomodoro sessions data (prefer backend analyticsData when available, fallback to client localStorage)
   const weeklyData = (() => {
+    if (analyticsData?.weeklyData && analyticsData.weeklyData.length > 0) {
+      return analyticsData.weeklyData.map(d => ({
+        day: d.day,
+        sessions: d.sessions || 0,
+        focusMins: d.focusMins || (d.hours ? Math.round(d.hours * 60) : (d.sessions || 0) * 25),
+        date: d.date || d.day
+      }))
+    }
+
     if (!user) return []
     const dailyKey = `grindpath_${user._id}_pomodoro_daily`
     const savedDaily = localStorage.getItem(dailyKey)
@@ -60,21 +69,23 @@ const Analytics = () => {
       d.setDate(d.getDate() - (6 - i))
       const key = d.toDateString()
       const dateKey = d.toISOString().slice(0, 10)
+      const sessions = dailyData[key] || 0
       return {
         day: DAY_LABELS[d.getDay()],
-        sessions: dailyData[key] || 0,
-        focusMins: (dailyData[key] || 0) * 25,
+        sessions,
+        focusMins: sessions * 25,
         date: dateKey
       }
     })
   })()
 
-  // Category breakdown
+  // Category breakdown from goals
   const categoryData = (() => {
     const catMap = goals.reduce((acc, g) => {
-      if (!acc[g.category]) acc[g.category] = { total: 0, completed: 0 }
-      acc[g.category].total++
-      if (g.completed) acc[g.category].completed++
+      const cat = g.category || "General"
+      if (!acc[cat]) acc[cat] = { total: 0, completed: 0 }
+      acc[cat].total++
+      if (g.completed) acc[cat].completed++
       return acc
     }, {})
     return Object.entries(catMap).map(([name, v]) => ({
@@ -97,7 +108,7 @@ const Analytics = () => {
   const completionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0
 
   // Productivity Score
-  const productivityScore = Math.min(100, Math.round(
+  const productivityScore = analyticsData?.productivityScore ?? Math.min(100, Math.round(
     (completedGoals / Math.max(totalGoals, 1)) * 40 +
     Math.min(pomodoroSessions, 20) * 2 +
     Math.min(streak * 2, 20)
@@ -110,7 +121,7 @@ const Analytics = () => {
   const CHART_COLORS = ["#3b82f6", "#818cf8", "#34d399", "#f59e0b", "#f472b6", "#22d3ee"]
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto select-none">
       
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -118,7 +129,7 @@ const Analytics = () => {
           <BarChart2 className="text-blue-500" size={22} />
           Study Analytics
         </h1>
-        <p className="text-zinc-500 text-sm mt-1">Deep insights into your productivity, focus patterns, and goal progress.</p>
+        <p className="text-zinc-400 text-sm mt-1 font-medium">Deep insights into your productivity, focus patterns, and goal progress.</p>
       </motion.div>
 
       {totalGoals === 0 && weeklyPomodoros === 0 ? (
@@ -136,179 +147,179 @@ const Analytics = () => {
       ) : (
         <>
           {/* Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard icon={Clock} label="Total Focus Hours" value={`${totalFocusHours}h`} sub={`${pomodoroSessions} sessions all-time`} color="from-blue-500 to-indigo-600" delay={0.05} />
-        <MetricCard icon={Target} label="Goal Completion Rate" value={`${completionRate}%`} sub={`${completedGoals}/${totalGoals} goals done`} color="from-emerald-500 to-teal-600" delay={0.1} />
-        <MetricCard icon={Flame} label="Current Streak" value={`${streak}d`} sub="Consecutive active days" color="from-amber-500 to-orange-600" delay={0.15} />
-        <MetricCard icon={CheckCircle2} label="Habit Rate Today" value={`${habitRate}%`} sub={`${habitCompleted}/${habitTotal} habits done`} color="from-violet-500 to-purple-600" delay={0.2} />
-      </div>
-
-      {/* Productivity Score + Weekly Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* Productivity Score */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="glass-panel p-5 rounded-2xl border border-zinc-800/50 flex flex-col items-center justify-center"
-        >
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Productivity Score</h3>
-          <div className="relative w-32 h-32">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#27272a" strokeWidth="7" />
-              <circle 
-                cx="50" cy="50" r="42" 
-                fill="none" 
-                stroke="url(#scoreGrad)" 
-                strokeWidth="7" 
-                strokeLinecap="round"
-                strokeDasharray={`${productivityScore * 2.638} 263.8`}
-                className="transition-all duration-1000"
-              />
-              <defs>
-                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#818cf8" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-black text-white">{productivityScore}</span>
-              <span className="text-[10px] text-zinc-500 font-bold">/100</span>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard icon={Clock} label="Total Focus Hours" value={`${totalFocusHours}h`} sub={`${pomodoroSessions} sessions all-time`} color="from-blue-500 to-indigo-600" delay={0.05} />
+            <MetricCard icon={Target} label="Goal Completion Rate" value={`${completionRate}%`} sub={`${completedGoals}/${totalGoals} goals done`} color="from-emerald-500 to-teal-600" delay={0.1} />
+            <MetricCard icon={Flame} label="Current Streak" value={`${streak}d`} sub="Consecutive active days" color="from-amber-500 to-orange-600" delay={0.15} />
+            <MetricCard icon={CheckCircle2} label="Habit Rate Today" value={`${habitRate}%`} sub={`${habitCompleted}/${habitTotal} habits done`} color="from-violet-500 to-purple-600" delay={0.2} />
           </div>
-          <p className="text-xs text-zinc-500 mt-4 text-center">
-            {productivityScore >= 80 ? "🔥 Excellent performance!" : 
-             productivityScore >= 50 ? "📈 Good momentum, keep going!" : 
-             "🎯 Kick it up a notch!"}
-          </p>
-        </motion.div>
 
-        {/* Weekly Summary Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="md:col-span-2 glass-panel p-5 rounded-2xl border border-zinc-800/50"
-        >
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <TrendingUp size={13} className="text-blue-400" /> This Week
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Focus Hours", value: `${weeklyFocusHours}h`, icon: Clock, color: "text-blue-400" },
-              { label: "Pomodoros", value: weeklyPomodoros, icon: Zap, color: "text-indigo-400" },
-              { label: "Active Goals", value: activeGoals, icon: Target, color: "text-amber-400" },
-              { label: "XP Earned", value: `${xp} total`, icon: Flame, color: "text-rose-400" }
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-zinc-900 rounded-xl p-3 flex items-center gap-2.5">
-                <Icon size={14} className={color} />
-                <div>
-                  <p className="text-sm font-black text-white">{value}</p>
-                  <p className="text-[10px] text-zinc-600">{label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Weekly Focus Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
-        >
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Daily Focus Minutes (Last 7 Days)</h3>
-          <div className="w-full h-[200px] min-h-[200px]">
-            {weeklyData && weeklyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weeklyData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+          {/* Productivity Score + Weekly Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Productivity Score */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="glass-panel p-5 rounded-2xl border border-zinc-800/50 flex flex-col items-center justify-center"
+            >
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Productivity Score</h3>
+              <div className="relative w-32 h-32">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#27272a" strokeWidth="7" />
+                  <circle 
+                    cx="50" cy="50" r="42" 
+                    fill="none" 
+                    stroke="url(#scoreGrad)" 
+                    strokeWidth="7" 
+                    strokeLinecap="round"
+                    strokeDasharray={`${productivityScore * 2.638} 263.8`}
+                    className="transition-all duration-1000"
+                  />
                   <defs>
-                    <linearGradient id="focusGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#3b82f6" />
+                      <stop offset="100%" stopColor="#818cf8" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="day" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="focusMins" name="Focus Mins" stroke="#3b82f6" fill="url(#focusGrad)" strokeWidth={2} dot={{ fill: "#3b82f6", r: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No focus data yet.</div>
-            )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-black text-white">{productivityScore}</span>
+                  <span className="text-[10px] text-zinc-500 font-bold">/100</span>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-400 font-medium mt-4 text-center">
+                {productivityScore >= 80 ? "🔥 Excellent performance!" : 
+                 productivityScore >= 50 ? "📈 Good momentum, keep going!" : 
+                 "🎯 Kick it up a notch!"}
+              </p>
+            </motion.div>
+
+            {/* Weekly Summary Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:col-span-2 glass-panel p-5 rounded-2xl border border-zinc-800/50"
+            >
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <TrendingUp size={13} className="text-blue-400" /> This Week
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Focus Hours", value: `${weeklyFocusHours}h`, icon: Clock, color: "text-blue-400" },
+                  { label: "Pomodoros", value: weeklyPomodoros, icon: Zap, color: "text-indigo-400" },
+                  { label: "Active Goals", value: activeGoals, icon: Target, color: "text-amber-400" },
+                  { label: "XP Earned", value: `${xp} total`, icon: Flame, color: "text-rose-400" }
+                ].map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="bg-zinc-900 rounded-xl p-3 flex items-center gap-2.5">
+                    <Icon size={14} className={color} />
+                    <div>
+                      <p className="text-sm font-black text-white">{value}</p>
+                      <p className="text-[10px] text-zinc-400 font-medium">{label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
 
-        {/* Category Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
-        >
-          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Goals by Category</h3>
-          {categoryData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-zinc-600 text-xs">
-              No goals yet. Create goals to see category analytics.
-            </div>
-          ) : (
-            <div className="w-full h-[200px] min-h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="name" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="completed" name="Completed" stackId="a" radius={[0, 0, 0, 0]}>
-                    {categoryData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                  </Bar>
-                  <Bar dataKey="active" name="Active" stackId="a" radius={[4, 4, 0, 0]}>
-                    {categoryData.map((_, i) => <Cell key={i} fill={`${CHART_COLORS[i % CHART_COLORS.length]}44`} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </motion.div>
-      </div>
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Weekly Focus Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
+            >
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Daily Focus Minutes (Last 7 Days)</h3>
+              <div className="w-full h-[200px] min-h-[200px] min-w-0">
+                {weeklyData && weeklyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={weeklyData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                      <defs>
+                        <linearGradient id="focusGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                      <XAxis dataKey="day" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="focusMins" name="Focus Mins" stroke="#3b82f6" fill="url(#focusGrad)" strokeWidth={2} dot={{ fill: "#3b82f6", r: 3 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs font-medium">No focus data yet.</div>
+                )}
+              </div>
+            </motion.div>
 
-      {/* Daily Pomodoro Sessions Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45 }}
-        className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
-      >
-        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Daily Focus Sessions</h3>
-        <div className="w-full h-[140px] min-h-[140px]">
-          {weeklyData && weeklyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} margin={{ top: 0, right: 5, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="day" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="sessions" name="Sessions" radius={[4, 4, 0, 0]}>
-                  {weeklyData.map((entry, i) => (
-                    <Cell key={i} fill={entry.sessions > 0 ? "#818cf8" : "#27272a"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No sessions yet.</div>
-          )}
-        </div>
-        </motion.div>
+            {/* Category Breakdown */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
+            >
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Goals by Category</h3>
+              {categoryData.length === 0 ? (
+                <div className="h-48 flex items-center justify-center text-zinc-600 text-xs font-medium">
+                  No goals yet. Create goals to see category analytics.
+                </div>
+              ) : (
+                <div className="w-full h-[200px] min-h-[200px] min-w-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categoryData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                      <XAxis dataKey="name" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="completed" name="Completed Goals" stackId="a" radius={[0, 0, 0, 0]}>
+                        {categoryData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                      </Bar>
+                      <Bar dataKey="active" name="Active Goals" stackId="a" radius={[4, 4, 0, 0]}>
+                        {categoryData.map((_, i) => <Cell key={i} fill={`${CHART_COLORS[i % CHART_COLORS.length]}44`} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Daily Pomodoro Sessions Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="glass-panel p-5 rounded-2xl border border-zinc-800/50"
+          >
+            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4">Daily Focus Sessions</h3>
+            <div className="w-full h-[140px] min-h-[140px] min-w-0">
+              {weeklyData && weeklyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyData} margin={{ top: 0, right: 5, bottom: 0, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="day" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="sessions" name="Focus Sessions" radius={[4, 4, 0, 0]}>
+                      {weeklyData.map((entry, i) => (
+                        <Cell key={i} fill={entry.sessions > 0 ? "#818cf8" : "#27272a"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs font-medium">No sessions yet.</div>
+              )}
+            </div>
+          </motion.div>
         </>
       )}
     </div>
