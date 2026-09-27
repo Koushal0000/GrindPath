@@ -29,6 +29,7 @@ const LandingPage = () => {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
+    document.title = "GrindPath — Smart Learning Platform"
     const onScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
